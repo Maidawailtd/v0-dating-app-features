@@ -1,248 +1,350 @@
-"use client";
-import Image from "next/image";
-import { useState, useRef, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
+"use client"
 
-// List your images here (make sure they exist in /public)
-const sliderImages = [
-  "/community1.jpg",
-  "/community2.jpg",
-  "/community3.jpg",
-];
+export const dynamic = "force-dynamic"
 
-export default function Home() {
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const slideInterval = useRef<NodeJS.Timeout | null>(null);
-  const [formState, setFormState] = useState({ error: null, success: null });
-  const supabase = createClient();
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import Image from "next/image"
+import { Button } from "@/components/ui/button"
+import { Heart, Users, Shield, Zap, ArrowRight, Star, Sparkles } from "lucide-react"
+import { HeaderClient } from "@/components/header-client"
 
-  // Auto-slide every 3 seconds
+export default function HomePage() {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [modelOfDay, setModelOfDay] = useState<any>(null)
+
+  const modelImages = [
+    "/beautiful-black-woman-model-1.jpg",
+    "/beautiful-black-woman-model-2.jpg",
+    "/beautiful-black-woman-model-3.jpg",
+    "/beautiful-black-woman-model-4.jpg",
+    "/beautiful-black-woman-model-5.jpg",
+  ]
+
   useEffect(() => {
-    slideInterval.current = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % sliderImages.length);
-    }, 3000);
-    return () => {
-      if (slideInterval.current) clearInterval(slideInterval.current);
-    };
-  }, []);
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % modelImages.length)
+    }, 10000)
+    return () => clearInterval(interval)
+  }, [modelImages.length])
 
-  // Handle signup form submit
-  const handleSignup = async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const name = form.name.value;
-    const age = form.age.value;
-    const email = form.email.value;
-    const gender = form.gender.value;
-
-    // Optional: Add further validation here
-    if (!name || !age || !email || !gender) {
-      setFormState({ error: "All fields are required.", success: null });
-      return;
+  // Fetch model of the day
+  useEffect(() => {
+    const fetchModelOfDay = async () => {
+      try {
+        const response = await fetch("/api/models/of-day")
+        if (response.ok) {
+          const data = await response.json()
+          setModelOfDay(data)
+        }
+      } catch (err) {}
     }
-
-    // Insert into Supabase (adjust table/fields as needed)
-    const { error } = await supabase
-      .from("profiles")
-      .insert([
-        {
-          full_name: name,
-          email,
-          gender,
-          // Convert age to date_of_birth if needed
-          date_of_birth: `19${new Date().getFullYear() - age}-01-01`, // crude conversion
-        },
-      ]);
-    if (error) {
-      setFormState({ error: "Signup failed. Please try again.", success: null });
-    } else {
-      setFormState({ error: null, success: "Signup successful! Please check your email." });
-      form.reset();
-    }
-  };
+    fetchModelOfDay()
+  }, [])
 
   return (
-    <main className="bg-gray-900 text-white min-h-screen">
-      {/* Image Slider */}
-      <section className="relative w-full h-[280px] sm:h-[400px] md:h-[500px] mb-8 overflow-hidden">
-        {sliderImages.map((src, i) => (
-          <div
-            key={src}
-            className={`absolute inset-0 transition-opacity duration-700 ${i === currentSlide ? "opacity-100 z-10" : "opacity-0 z-0"}`}
-            aria-hidden={i !== currentSlide}
-          >
-            <Image
-              src={src}
-              alt={`Community slide ${i + 1}`}
-              fill
-              priority={i === currentSlide}
-              sizes="100vw"
-              className="object-cover w-full h-full"
-            />
+    <div className="min-h-screen bg-background text-foreground">
+      <HeaderClient />
+
+      {/* Hero Section with Image Carousel */}
+      <section className="relative w-full h-96 sm:h-[500px] md:h-[600px] overflow-hidden">
+        <div className="absolute inset-0">
+          <Image
+            src={modelImages[currentImageIndex] || "/placeholder.svg"}
+            alt={`Model carousel image ${currentImageIndex + 1} of ${modelImages.length}`}
+            fill
+            className="object-cover transition-opacity duration-1000"
+            priority
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 100vw"
+          />
+          <div className="absolute inset-0 bg-black/40" />
+        </div>
+
+        <div className="relative h-full flex flex-col items-center justify-center text-center text-white px-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-balance">
+            Find Your Perfect Match
+          </h2>
+          <p className="text-lg sm:text-xl md:text-2xl mb-8 max-w-2xl text-balance">
+            Connect with authentic Black singles worldwide. Verified members, smart matching, and meaningful
+            relationships.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Link href="/auth/sign-up">
+              <Button size="lg" className="bg-amber-600 hover:bg-amber-700 text-white">
+                Get Started <ArrowRight className="ml-2 w-4 h-4" aria-hidden="true" />
+              </Button>
+            </Link>
+            <Link href="/auth/login">
+              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/20 bg-transparent">
+                Sign In
+              </Button>
+            </Link>
           </div>
-        ))}
-        {/* Slider dots */}
-        <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
-          {sliderImages.map((_, i) => (
+        </div>
+
+        {/* Image Navigation */}
+        <div
+          className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2"
+          role="tablist"
+          aria-label="Carousel slides"
+        >
+          {modelImages.map((_, idx) => (
             <button
-              key={i}
-              aria-label={`Go to slide ${i + 1}`}
-              className={`w-3 h-3 rounded-full ${i === currentSlide ? "bg-yellow-500" : "bg-gray-600"} transition`}
-              onClick={() => setCurrentSlide(i)}
+              key={idx}
+              onClick={() => setCurrentImageIndex(idx)}
+              className={`w-2 h-2 rounded-full transition-all ${
+                idx === currentImageIndex ? "bg-white w-8" : "bg-white/50"
+              }`}
+              aria-label={`Go to slide ${idx + 1}`}
+              aria-selected={idx === currentImageIndex}
+              role="tab"
             />
           ))}
         </div>
       </section>
 
-      {/* Hero Section */}
-      <section className="container mx-auto px-4 py-16 text-center">
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-6 text-yellow-500">
-          Find Love, Build Connections, Celebrate Black Love
-        </h1>
-        <p className="text-gray-300 text-sm sm:text-base md:text-lg max-w-2xl mx-auto mb-8">
-          Join thousands of singles connecting every day on Eboni Dating. Where real love meets authenticity.
-        </p>
-        {/* Signup Form */}
-        <form className="flex flex-col sm:flex-row justify-center items-center gap-3 max-w-2xl mx-auto"
-          onSubmit={handleSignup}
-          aria-label="Signup form"
-        >
-          <input
-            type="text"
-            name="name"
-            placeholder="Name"
-            required
-            aria-label="Name"
-            className="w-full sm:w-auto flex-1 rounded-lg p-3 text-gray-900 focus:ring-2 focus:ring-yellow-500"
-          />
-          <input
-            type="number"
-            name="age"
-            min="18"
-            max="100"
-            placeholder="Age"
-            required
-            aria-label="Age"
-            className="w-full sm:w-auto flex-1 rounded-lg p-3 text-gray-900 focus:ring-2 focus:ring-yellow-500"
-          />
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            required
-            aria-label="Email"
-            className="w-full sm:w-auto flex-1 rounded-lg p-3 text-gray-900 focus:ring-2 focus:ring-yellow-500"
-          />
-          <select
-            name="gender"
-            required
-            aria-label="Gender"
-            className="w-full sm:w-auto flex-1 rounded-lg p-3 text-gray-900 focus:ring-2 focus:ring-yellow-500"
-          >
-            <option value="">I'm a...</option>
-            <option value="man">Man Seeking Woman</option>
-            <option value="woman">Woman Seeking Man</option>
-            <option value="other">Other</option>
-          </select>
-          <button
-            type="submit"
-            className="w-full sm:w-auto bg-yellow-600 hover:bg-yellow-500 text-white font-semibold rounded-lg p-3 touch-button"
-            aria-label="Join Free Today"
-          >
-            Join Free Today
-          </button>
-        </form>
-        {formState.error && <p className="text-red-500 mt-4">{formState.error}</p>}
-        {formState.success && <p className="text-green-500 mt-4">{formState.success}</p>}
+      {/* Model of the Day Section */}
+      <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center gap-2 mb-8">
+            <Sparkles className="w-6 h-6 text-amber-600" aria-hidden="true" />
+            <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+              Model of the Day
+            </h3>
+          </div>
+
+          {modelOfDay ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="md:col-span-1">
+                <div className="relative w-full aspect-square rounded-lg overflow-hidden shadow-lg">
+                  <Image
+                    src={modelOfDay.profile_photo_url || "/placeholder.svg"}
+                    alt={`${modelOfDay.full_name}, Model of the Day`}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                  />
+                </div>
+              </div>
+              <div className="md:col-span-2 flex flex-col justify-center space-y-4">
+                <div>
+                  <h4 className="text-2xl font-bold text-gray-900 dark:text-white">{modelOfDay.full_name}</h4>
+                  <p className="text-amber-600 font-semibold">
+                    {modelOfDay.city}, {modelOfDay.country}
+                  </p>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
+                    <p className="text-2xl font-bold text-amber-600">{modelOfDay.likes_count || 0}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Likes</p>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
+                    <p className="text-2xl font-bold text-amber-600">{modelOfDay.followers_count || 0}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Followers</p>
+                  </div>
+                  <div className="bg-white dark:bg-gray-800 p-4 rounded-lg">
+                    <p className="text-2xl font-bold text-amber-600">{modelOfDay.posts_count || 0}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Posts</p>
+                  </div>
+                </div>
+                <Link href="/auth/sign-up">
+                  <Button className="w-full bg-amber-600 hover:bg-amber-700">View Profile & Connect</Button>
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-lg text-center">
+              <p className="text-gray-600 dark:text-gray-400">Loading model of the day...</p>
+            </div>
+          )}
+        </div>
       </section>
 
       {/* Features Section */}
-      <section className="bg-gray-800 py-12">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold mb-8 text-yellow-500">Why Choose Eboni Dating?</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+      <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-12 text-gray-900 dark:text-white">
+            Why Choose Eboni Dating?
+          </h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { title: "Authentic Profiles", desc: "Real people. Real love stories." },
-              { title: "Private & Secure", desc: "Your information stays safe with us." },
-              { title: "Smart Matching", desc: "We connect you with compatible singles." },
-              { title: "Community Vibes", desc: "Celebrate love, culture, and connection." },
-            ].map((item, i) => (
-              <div
-                key={i}
-                className="bg-gray-900 rounded-xl p-6 border border-gray-700 hover:border-yellow-500 transition"
-              >
-                <h3 className="text-xl font-semibold text-yellow-500 mb-2">{item.title}</h3>
-                <p className="text-gray-400 text-sm">{item.desc}</p>
+              { icon: Shield, title: "Verified Members", desc: "All profiles verified for authenticity" },
+              { icon: Zap, title: "Smart Matching", desc: "AI-powered compatibility matching" },
+              { icon: Heart, title: "Real Connections", desc: "Find meaningful relationships" },
+              { icon: Users, title: "Active Community", desc: "Thousands of verified singles" },
+            ].map((feature, idx) => (
+              <div key={idx} className="bg-card p-6 rounded-lg border border-border hover:shadow-lg transition">
+                <feature.icon className="w-8 h-8 text-amber-600 mb-4" aria-hidden="true" />
+                <h4 className="font-semibold text-foreground mb-2">{feature.title}</h4>
+                <p className="text-muted-foreground text-sm">{feature.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Membership Section */}
-      <section className="bg-gray-900 py-16">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold text-yellow-500 mb-10">Choose Your Membership Plan</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+      {/* Membership Plans */}
+      <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8 bg-muted/50">
+        <div className="max-w-7xl mx-auto">
+          <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-12 text-foreground">
+            Choose Your Plan
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { plan: "Free", price: "$0", features: ["Basic Matchmaking", "Profile Setup"] },
-              { plan: "Premium", price: "$19.99/mo", features: ["Advanced Matchmaking", "Unlimited Chats", "Priority Support"] },
-              { plan: "Elite", price: "$49.99/mo", features: ["Everything in Premium", "Verified Badge", "Video Calls"] },
-            ].map((p, i) => (
-              <div key={i} className="bg-gray-800 rounded-2xl p-6 shadow-lg hover:scale-105 transition">
-                <h3 className="text-xl font-semibold text-yellow-500 mb-3">{p.plan}</h3>
-                <p className="text-3xl font-bold mb-4">{p.price}</p>
-                <ul className="text-gray-300 text-sm mb-6 space-y-2">
-                  {p.features.map((f, j) => (
-                    <li key={j}>• {f}</li>
+              { name: "Free", price: "$0", features: ["Basic profile", "Browse profiles", "Limited likes"] },
+              {
+                name: "Premium",
+                price: "$9.99",
+                features: ["Unlimited likes", "Advanced filters", "See who liked you"],
+                popular: true,
+              },
+              { name: "VIP", price: "$19.99", features: ["Priority support", "Verified badge", "Video calls"] },
+              { name: "Model Pro", price: "$29.99", features: ["Gallery access", "Model awards", "Analytics"] },
+            ].map((plan, idx) => (
+              <div
+                key={idx}
+                className={`rounded-lg p-6 transition ${
+                  plan.popular
+                    ? "bg-amber-600 text-white shadow-lg scale-105"
+                    : "bg-card border border-border text-foreground"
+                }`}
+              >
+                {plan.popular && (
+                  <div className="text-sm font-semibold mb-2 flex items-center gap-1">
+                    <Star className="w-4 h-4" aria-hidden="true" /> Most Popular
+                  </div>
+                )}
+                <h4 className="text-xl font-bold mb-2">{plan.name}</h4>
+                <p className="text-2xl font-bold mb-4">
+                  {plan.price}
+                  <span className="text-sm">/mo</span>
+                </p>
+                <ul className="space-y-2 mb-6">
+                  {plan.features.map((feature, fidx) => (
+                    <li key={fidx} className="text-sm flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-current" aria-hidden="true" />
+                      {feature}
+                    </li>
                   ))}
                 </ul>
-                <a
-                  href="/pricing"
-                  className="bg-yellow-600 hover:bg-yellow-500 text-white font-semibold py-2 px-4 rounded-lg inline-block"
-                  aria-label={`Get started with ${p.plan} plan`}
-                >
-                  Get Started
-                </a>
+                <Link href="/auth/sign-up">
+                  <Button className="w-full" variant={plan.popular ? "default" : "outline"}>
+                    Get Started
+                  </Button>
+                </Link>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Community Section */}
-      <section className="bg-gray-800 py-16">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold text-yellow-500 mb-10">
-            Join Our Thriving Community
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {sliderImages.map((src, i) => (
-              <Image
-                key={i}
-                src={src}
-                alt={`Community member ${i + 1}`}
-                width={300}
-                height={300}
-                className="rounded-xl object-cover w-full h-auto hover:opacity-90 transition"
-              />
-            ))}
-          </div>
+      {/* CTA Section */}
+      <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto text-center">
+          <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 text-foreground">Ready to Find Your Match?</h3>
+          <p className="text-lg text-muted-foreground mb-8">
+            Join thousands of Black singles finding love and authentic connections on Eboni Dating.
+          </p>
+          <Link href="/auth/sign-up">
+            <Button size="lg" className="bg-amber-600 hover:bg-amber-700">
+              Start Your Journey Today <ArrowRight className="ml-2 w-4 h-4" aria-hidden="true" />
+            </Button>
+          </Link>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 py-8 text-center border-t border-gray-700">
-        <p className="text-gray-400 text-sm">
-          © {new Date().getFullYear()} Eboni Dating — All rights reserved.
-        </p>
-        <nav className="mt-2 flex justify-center gap-6 text-sm">
-          <a href="/terms" aria-label="Terms of Service" className="hover:text-yellow-500">Terms of Service</a>
-          <a href="/privacy" aria-label="Privacy Policy" className="hover:text-yellow-500">Privacy Policy</a>
-          <a href="/pricing" aria-label="Pricing" className="hover:text-yellow-500">Pricing</a>
-        </nav>
+      <footer className="bg-card border-t border-border py-8 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <h4 className="font-semibold mb-4 text-foreground">About</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>
+                  <Link href="#" className="hover:text-foreground transition">
+                    About Us
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-foreground transition">
+                    Blog
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-foreground transition">
+                    Press
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4 text-foreground">Support</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>
+                  <Link href="#" className="hover:text-foreground transition">
+                    Help Center
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-foreground transition">
+                    Contact
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-foreground transition">
+                    Safety Tips
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4 text-foreground">Legal</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>
+                  <Link href="/privacy" className="hover:text-foreground transition">
+                    Privacy
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/terms" className="hover:text-foreground transition">
+                    Terms
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-foreground transition">
+                    Cookies
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4 text-foreground">Follow</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>
+                  <Link href="#" className="hover:text-foreground transition">
+                    Twitter
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-foreground transition">
+                    Instagram
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#" className="hover:text-foreground transition">
+                    Facebook
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-border pt-8 text-center text-sm text-muted-foreground">
+            <p>&copy; 2025 Eboni Dating. All rights reserved.</p>
+          </div>
+        </div>
       </footer>
-    </main>
-  );
+    </div>
+  )
 }
-
